@@ -1,8 +1,8 @@
-name: Set Environment Variable
+name: Use Environment Variable
 
 on:
   workflow_run:
-    workflows: [ "PR Title Checker" ]
+    workflows: [ "Set Environment Variable" ]
     types:
       - completed
 
@@ -13,5 +13,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Use PR Version
-        run: echo "The PR version is ${{ env.LATEST_VERSION }}"
+      - name: Get GitHub Variable
+        uses: actions/github-script@v4
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            const latestVersion = execSync('gh variable get LATEST_VERSION --body').toString().trim();
+            console.log(`LATEST_VERSION=${latestVersion}`);
+            execSync(`echo LATEST_VERSION=${latestVersion}`);
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
