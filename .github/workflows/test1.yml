@@ -2,7 +2,7 @@ name: Set Environment Variable
 
 on:
   workflow_run:
-    workflows: [ "PR Title Checker" ]
+    workflows: [ "Set Environment Variable" ]
     types:
       - completed
 
