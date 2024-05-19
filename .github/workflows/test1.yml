@@ -1,4 +1,4 @@
-name: Set Environment Variable
+name: Use Environment Variable
 
 on:
   workflow_run:
