@@ -13,13 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Get GitHub Variable
-        uses: actions/github-script@v4
-        with:
-          script: |
-            const { execSync } = require('child_process');
-            const latestVersion = execSync('gh variable get LATEST_VERSION --body').toString().trim();
-            console.log(`LATEST_VERSION=${latestVersion}`);
-            execSync(`echo LATEST_VERSION=${latestVersion}`);
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract version from PR
+        id: get_version
+        run: |
+          LATEST_VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -oP '(?<=Release )[0-9]+\.[0-9]+\.[0-9]+(-pre-alpha|-alpha|-beta)?')
+          if [[ ! $LATEST_VERSION ]]; then
+            echo "Version info not found."
+            exit 1
+          fi
+          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
