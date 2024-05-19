@@ -1,0 +1,15 @@
+name: Set Environment Variable
+
+on: [push]
+
+jobs:
+  set-env-var:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Extract version from PR - PR 에서 버전 정보 추출
+        id: get_version
+        run: |
+          echo "LATEST_VERSION=0.0.1-pre-alpha" >> $GITHUB_ENV
