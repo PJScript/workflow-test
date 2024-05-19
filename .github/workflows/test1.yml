@@ -1,0 +1,17 @@
+name: Set Environment Variable
+
+on:
+  workflow_run:
+    workflows: [ "PR Title Checker" ]
+    types:
+      - completed
+
+jobs:
+  use-env-var:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use PR Version
+        run: echo "The PR version is ${{ env.LATEST_VERSION }}"
