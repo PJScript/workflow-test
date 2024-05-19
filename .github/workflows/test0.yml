@@ -27,4 +27,4 @@ jobs:
             const latestVersion = process.env.LATEST_VERSION;
             execSync(`gh variable set LATEST_VERSION -b ${latestVersion}`);
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
