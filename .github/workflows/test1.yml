@@ -2,7 +2,7 @@ name: Use Environment Variable
 
 on:
   workflow_run:
-    workflows: [ "Set Environment Variable" ]
+    workflows: [ "PR Title Checker" ]
     types:
       - completed
 
@@ -13,12 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Extract version from PR
-        id: get_version
+      - name: Extract version from build.gradle
+        id: extract_version
         run: |
-          LATEST_VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -oP '(?<=Release )[0-9]+\.[0-9]+\.[0-9]+(-pre-alpha|-alpha|-beta)?')
-          if [[ ! $LATEST_VERSION ]]; then
-            echo "Version info not found."
-            exit 1
-          fi
-          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
+          version=$(grep '^version' build.gradle | sed 's/version[[:space:]]*=[[:space:]]*//;s/"//g')
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "Build.gradle version: $version"
