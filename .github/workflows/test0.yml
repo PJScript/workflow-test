@@ -32,7 +32,7 @@ jobs:
         run: |
           TITLE="${{ github.event.pull_request.title || github.event.issue.title }}"
           echo "PR Title: $TITLE"
-          if ! [[ "$TITLE" =~ ^Release[[:space:]][0-9]+\.[0-9]+\.[0-9]+(-pre-alpha|-alpha|-beta)?$ ]]; then
+          if ! [[ $TITLE =~ ^Release[[:space:]][0-9]+\.[0-9]+\.[0-9]+(-pre-alpha|-alpha|-beta)?$ ]]; then
             echo "PR 제목 형식이 올바르지 않습니다. 다음과 같은 형식을 지켜주세요: 'Release X.X.X(-pre-alpha|-alpha|-beta)'"
             exit 1
           fi
