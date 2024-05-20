@@ -42,7 +42,7 @@ jobs:
 
       - name: Compare versions
         run: |
-          if [ "${{ env.VERSION }}" != "${{ env.PR_VERSION }}" ]; then
+          if [ ${{ env.VERSION }} != ${{ env.PR_VERSION }} ]; then
             echo "PR 제목의 버전 (${ env.PR_VERSION })과 build.gradle의 버전 (${ env.VERSION })이 일치하지 않습니다."
             exit 1
           else
