@@ -15,21 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check if this is a title edit or PR merge
-        id: check_event
-        run: |
-          if [[ "${{ github.event.action }}" == "edited" && -z "${{ github.event.changes.title }}" ]]; then
-            echo "Non-title edit detected. Skipping..."
-            exit 0
-          fi
-          if [[ "${{ github.event.action }}" == "edited" ]]; then
-            TITLE="${{ github.event.pull_request.title }}"
-            echo "PR Title: $TITLE"
-            if ! [[ $TITLE =~ WORKFLOW-RETRY-[0-9]+ ]]; then
-              echo "No WORKFLOW-RETRY pattern detected. Skipping..."
-              exit 0
-            fi
-          fi
+
 
       - name: Checkout repository
         uses: actions/checkout@v2
