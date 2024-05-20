@@ -1,4 +1,4 @@
-name: Set Environment Variable
+name: PR Title Checker
 
 on:
   pull_request:
@@ -6,25 +6,47 @@ on:
       - closed
     branches:
       - main
+    paths-ignore:
+      - '.github/**'
 
 jobs:
-  set-env-var:
+  check-title:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Extract version from PR - PR 에서 버전 정보 추출
-        id: get_version
-        run: |
-          echo "LATEST_VERSION=0.0.1-pre-alpha" >> $GITHUB_ENV
-
-      - name: Set GitHub Variable
-        uses: actions/github-script@v4
+      - name: Set up Java
+        uses: actions/setup-java@v2
         with:
-          script: |
-            const { execSync } = require('child_process');
-            const latestVersion = process.env.LATEST_VERSION;
-            execSync(`gh variable set LATEST_VERSION -b ${latestVersion}`);
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          java-version: '11'
+
+      - name: Extract version from build.gradle
+        id: extract_version
+        run: |
+          version=$(grep '^version' build.gradle | sed 's/version[[:space:]]*=[[:space:]]*//;s/"//g')
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "Build.gradle version: $version"
+
+      - name: Check PR Title
+        id: check_pr_title
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $TITLE"
+          if ! [[ "$TITLE" =~ ^Release[[:space:]][0-9]+\.[0-9]+\.[0-9]+(-pre-alpha|-alpha|-beta)?$ ]]; then
+            echo "PR 제목 형식이 올바르지 않습니다. 다음과 같은 형식을 지켜주세요: 'Release X.X.X(-pre-alpha|-alpha|-beta)'"
+            exit 1
+          fi
+          pr_version=$(echo $TITLE | grep -oP '[0-9]+\.[0-9]+\.[0-9]+(-pre-alpha|-alpha|-beta)?')
+          echo "PR Version: $pr_version"
+          echo "PR_VERSION=$pr_version" >> $GITHUB_ENV
+
+      - name: Compare versions
+        run: |
+          if [ "${{ env.VERSION }}" != "${{ env.PR_VERSION }}" ]; then
+            echo "PR 제목의 버전 (${ env.PR_VERSION })과 build.gradle의 버전 (${ env.VERSION })이 일치하지 않습니다."
+            exit 1
+          else
+            echo "PR 제목의 버전과 build.gradle의 버전이 일치합니다."
+          fi
