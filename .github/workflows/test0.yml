@@ -3,20 +3,34 @@ name: PR Title Checker
 on:
   pull_request:
     types:
+      - edited
       - closed
     branches:
       - main
     paths-ignore:
       - '.github/**'
-  issue_comment:
-    types: [created]
 
 jobs:
-  check-version:
-    if: github.event.pull_request.merged == true || startsWith(github.event.comment.body, '/retry-workflow')
+  check-version-and-title:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check if this is a title edit or PR merge
+        id: check_event
+        run: |
+          if [[ "${{ github.event.action }}" == "edited" && -z "${{ github.event.changes.title }}" ]]; then
+            echo "Non-title edit detected. Skipping..."
+            exit 0
+          fi
+          if [[ "${{ github.event.action }}" == "edited" ]]; then
+            TITLE="${{ github.event.pull_request.title }}"
+            echo "PR Title: $TITLE"
+            if ! [[ $TITLE =~ WORKFLOW-RETRY-[0-9]+ ]]; then
+              echo "No WORKFLOW-RETRY pattern detected. Skipping..."
+              exit 0
+            fi
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -37,7 +51,29 @@ jobs:
           echo "VERSION=$version" >> $GITHUB_ENV
           echo "Build.gradle version: $version"
 
-      - name: Compare versions
+      - name: Check PR Title
+        id: check_pr_title
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $TITLE"
+          if ! [[ $TITLE =~ ^Release[[:space:]][0-9]+\.[0-9]+\.[0-9]+(-pre-alpha|-alpha|-beta)?$ ]]; then
+            echo "PR 제목 형식이 올바르지 않습니다. 다음과 같은 형식을 지켜주세요: 'Release X.X.X(-pre-alpha|-alpha|-beta)'"
+            exit 1
+          fi
+          pr_version=$(echo $TITLE | grep -oP '[0-9]+\.[0-9]+\.[0-9]+(-pre-alpha|-alpha|-beta)?')
+          echo "PR Version: $pr_version"
+          echo "PR_VERSION=$pr_version" >> $GITHUB_ENV
+
+      - name: Compare PR and build.gradle versions
+        run: |
+          if [ ${{ env.VERSION }} != ${{ env.PR_VERSION }} ]; then
+            echo "PR 제목의 버전 (${ env.PR_VERSION })과 build.gradle의 버전 (${ env.VERSION })이 일치하지 않습니다. - FAIL"
+            exit 1
+          else
+            echo "PR 제목의 버전과 build.gradle의 버전이 일치합니다. - SUCCESS"
+          fi
+
+      - name: Compare versions with latest tag
         run: |
           latest_tag="${{ steps.get_latest_tag.outputs.latest_tag }}"
           current_version="${{ env.VERSION }}"
@@ -90,3 +126,12 @@ jobs:
           fi
 
           echo "Version increment is valid."
+
+      - name: Comment retry count
+        if: ${{ github.event.action == 'edited' && steps.check_event.outputs.retry_count }}
+        run: |
+          retry_count=$(echo ${{ github.event.pull_request.title }} | grep -oP 'WORKFLOW-RETRY-\K[0-9]+')
+          curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -X POST \
+               -d '{"body": "Workflow retried '$retry_count' times"}' \
+               "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
